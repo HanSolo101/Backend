@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glynac Ingestion Platform — Monitoring Console</title>
+    <meta name="description" content="Enterprise-grade monitoring dashboard for Salesforce, HubSpot, and Slack ingestion pipelines">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f35;
+            --bg-card-hover: #1f2544;
+            --border: #2a3050;
+            --border-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #6366f1;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-pink: #ec4899;
+            --gradient-blue: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --gradient-green: linear-gradient(135deg, #10b981, #06b6d4);
+            --gradient-amber: linear-gradient(135deg, #f59e0b, #ef4444);
+            --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.15);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Animated background ── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+            z-index: -1;
+            animation: bgShift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        /* ── Header ── */
+        .header {
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-blue);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .header-logo h1 {
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-logo .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.green { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); }
+        .status-dot.amber { background: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); }
+        .status-dot.red { background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* ── Navigation Tabs ── */
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 12px 32px;
+            background: rgba(17, 24, 39, 0.5);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+
+        .nav-tab.active {
+            color: var(--text-primary);
+            background: var(--bg-card);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+        }
+
+        .nav-tab i {
+            font-size: 14px;
+        }
+
+        .tab-badge {
+            background: var(--accent-blue);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* ── Main Content ── */
+        .main {
+            padding: 24px 32px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Stats Grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .stat-card.blue::before { background: var(--gradient-blue); }
+        .stat-card.green::before { background: var(--gradient-green); }
+        .stat-card.amber::before { background: var(--gradient-amber); }
+        .stat-card.purple::before { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+
+        .stat-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* ── Action Bar ── */
+        .action-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--gradient-blue);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ── Data Table ── */
+        .data-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(42, 48, 80, 0.5);
+        }
+
+        .data-table tr:hover td {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* ── Status Badges ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .badge-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-info { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+        .badge-neutral { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+        .badge-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+        }
+
+        .badge-success .badge-dot { background: #34d399; }
+        .badge-warning .badge-dot { background: #fbbf24; }
+        .badge-danger .badge-dot { background: #f87171; }
+        .badge-info .badge-dot { background: #818cf8; }
+
+        /* ── Log Console ── */
+        .log-console {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 24px;
+        }
+
+        .log-line { color: var(--text-secondary); }
+        .log-line.info { color: #58a6ff; }
+        .log-line.success { color: #3fb950; }
+        .log-line.warning { color: #d29922; }
+        .log-line.error { color: #f85149; }
+
+        /* ── Two Column Layout ── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .two-col { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .main { padding: 16px; }
+        }
+
+        /* ── Loading Spinner ── */
+        .spinner {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-logo">
+            <div class="logo-icon">G</div>
+            <div>
+                <h1>Glynac Ingestion Platform</h1>
+                <div class="subtitle">Enterprise Backend Monitoring Console</div>
+            </div>
+        </div>
+        <div class="header-status">
+            <span class="status-dot green" id="systemDot"></span>
+            <span style="font-size: 13px; color: var(--text-secondary);" id="systemStatus">System Online</span>
+            <span style="font-size: 12px; color: var(--text-muted);" id="lastRefresh"></span>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="overview" onclick="switchTab('overview')">
+            <i class="fas fa-th-large"></i> Overview
+        </button>
+        <button class="nav-tab" data-tab="salesforce" onclick="switchTab('salesforce')">
+            <i class="fas fa-cloud"></i> Salesforce
+            <span class="tab-badge" id="sfBadge">12</span>
+        </button>
+        <button class="nav-tab" data-tab="hubspot" onclick="switchTab('hubspot')">
+            <i class="fas fa-database"></i> HubSpot
+            <span class="tab-badge" id="hsBadge">8</span>
+        </button>
+        <button class="nav-tab" data-tab="slack" onclick="switchTab('slack')">
+            <i class="fab fa-slack"></i> Slack
+        </button>
+        <button class="nav-tab" data-tab="storage" onclick="switchTab('storage')">
+            <i class="fas fa-hdd"></i> Storage
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+
+        <!-- ═══ OVERVIEW TAB ═══ -->
+        <div class="tab-content active" id="tab-overview">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">Total Pipelines</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-meta">Salesforce · HubSpot · Slack</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Total Records Ingested</div>
+                    <div class="stat-value" id="totalRecords">—</div>
+                    <div class="stat-meta">Across all pipelines</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">ClickHouse Tables</div>
+                    <div class="stat-value" id="totalTables">—</div>
+                    <div class="stat-meta" id="totalViews">— views</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-label">MinIO Objects</div>
+                    <div class="stat-value" id="totalObjects">—</div>
+                    <div class="stat-meta" id="totalStorage">—</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-table" style="color: var(--accent-cyan)"></i> ClickHouse Tables</div>
+                        <button class="btn btn-outline" onclick="refreshOverview()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                    <div id="overviewTablesContainer">
+                        <div class="empty-state"><i class="fas fa-database"></i><p>No tables yet. Run a pipeline to populate data.</p></div>
+                    </div>
+                </div>
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-terminal" style="color: var(--accent-green)"></i> Activity Log</div>
+                    </div>
+                    <div class="log-console" id="activityLog">
+                        <div class="log-line info">[System] Monitoring console initialized</div>
+                        <div class="log-line">[System] Waiting for pipeline activity...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ SALESFORCE TAB ═══ -->
+        <div class="tab-content" id="tab-salesforce">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">Pipeline State</div>
+                    <div class="stat-value" id="sfState">Idle</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Objects Completed</div>
+                    <div class="stat-value" id="sfCompleted">0 / 12</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Total Records</div>
+                    <div class="stat-value" id="sfRecords">0</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-label">Failed Jobs</div>
+                    <div class="stat-value" id="sfFailed">0</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="triggerSalesforceSync()"><i class="fas fa-play"></i> Trigger Bulk Sync</button>
+                <button class="btn btn-warning" onclick="salesforceAction('pause')"><i class="fas fa-pause"></i> Pause</button>
+                <button class="btn btn-success" onclick="salesforceAction('resume')"><i class="fas fa-play"></i> Resume</button>
+                <button class="btn btn-outline" onclick="salesforceAction('reset')"><i class="fas fa-redo"></i> Reset Checkpoints</button>
+                <button class="btn btn-outline" onclick="refreshSalesforce()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-cloud" style="color: var(--accent-blue)"></i> Salesforce Ingestion Jobs</div>
+                </div>
+                <div id="sfJobsContainer">
+                    <table class="data-table">
+                        <thead><tr><th>Object</th><th>Status</th><th>Records</th><th>Duration</th><th>Parquet Path</th><th>Error</th></tr></thead>
+                        <tbody id="sfJobsBody"><tr><td colspan="6"><div class="empty-state">No jobs yet. Click "Trigger Bulk Sync" to start.</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-table" style="color: var(--accent-cyan)"></i> ClickHouse Tables</div>
+                </div>
+                <div id="sfTablesContainer">
+                    <table class="data-table">
+                        <thead><tr><th>Table Name</th><th>Rows</th><th>Columns</th></tr></thead>
+                        <tbody id="sfTablesBody"><tr><td colspan="3"><div class="empty-state">No tables yet.</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ HUBSPOT TAB ═══ -->
+        <div class="tab-content" id="tab-hubspot">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">Pipeline State</div>
+                    <div class="stat-value" id="hsState">Idle</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Resources Completed</div>
+                    <div class="stat-value" id="hsCompleted">0 / 8</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Total Records</div>
+                    <div class="stat-value" id="hsRecords">0</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-label">Parquet Files</div>
+                    <div class="stat-value" id="hsParquet">0</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="triggerHubSpotRun()"><i class="fas fa-play"></i> Run dlt Pipeline</button>
+                <button class="btn btn-warning" onclick="hubspotAction('pause')"><i class="fas fa-pause"></i> Pause</button>
+                <button class="btn btn-success" onclick="hubspotAction('resume')"><i class="fas fa-play"></i> Resume</button>
+                <button class="btn btn-outline" onclick="hubspotAction('reset')"><i class="fas fa-redo"></i> Reset Checkpoints</button>
+                <button class="btn btn-outline" onclick="refreshHubSpot()"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-database" style="color: var(--accent-purple)"></i> HubSpot Pipeline Jobs</div>
+                </div>
+                <div id="hsJobsContainer">
+                    <table class="data-table">
+                        <thead><tr><th>Resource</th><th>Status</th><th>Records</th><th>Parquet Files</th><th>Error</th></tr></thead>
+                        <tbody id="hsJobsBody"><tr><td colspan="5"><div class="empty-state">No jobs yet. Click "Run dlt Pipeline" to start.</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-chart-bar" style="color: var(--accent-cyan)"></i> Analytical Views</div>
+                </div>
+                <div id="hsViewsContainer">
+                    <div class="empty-state"><i class="fas fa-eye"></i><p>Views will appear after pipeline run.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ SLACK TAB ═══ -->
+        <div class="tab-content" id="tab-slack">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">Backfill State</div>
+                    <div class="stat-value" id="slBackfillState">Idle</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Channels Processed</div>
+                    <div class="stat-value" id="slChannels">0</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Realtime Events</div>
+                    <div class="stat-value" id="slRealtimeEvents">0</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-label">Total Messages</div>
+                    <div class="stat-value" id="slMessages">0</div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div>
+                    <h3 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);"><i class="fas fa-history"></i> Historical Backfill</h3>
+                    <div class="action-bar">
+                        <button class="btn btn-primary" onclick="startSlackBackfill()"><i class="fas fa-play"></i> Start Backfill</button>
+                        <button class="btn btn-warning" onclick="slackAction('backfill/pause')"><i class="fas fa-pause"></i> Pause</button>
+                        <button class="btn btn-success" onclick="slackAction('backfill/resume')"><i class="fas fa-play"></i> Resume</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);"><i class="fas fa-bolt"></i> Real-time Stream</h3>
+                    <div class="action-bar">
+                        <button class="btn btn-primary" onclick="slackAction('realtime/start')"><i class="fas fa-play"></i> Start Stream</button>
+                        <button class="btn btn-danger" onclick="slackAction('realtime/stop')"><i class="fas fa-stop"></i> Stop</button>
+                        <button class="btn btn-warning" onclick="slackAction('realtime/pause')"><i class="fas fa-pause"></i> Pause</button>
+                        <button class="btn btn-success" onclick="slackAction('realtime/resume')"><i class="fas fa-play"></i> Resume</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-panel" style="margin-top: 24px;">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fab fa-slack" style="color: var(--accent-pink)"></i> Channel Backfill Status</div>
+                    <button class="btn btn-outline" onclick="refreshSlack()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+                <div id="slJobsContainer">
+                    <table class="data-table">
+                        <thead><tr><th>Channel</th><th>Status</th><th>Messages</th><th>Threads</th><th>Error</th></tr></thead>
+                        <tbody id="slJobsBody"><tr><td colspan="5"><div class="empty-state">No backfill jobs yet.</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-bolt" style="color: var(--accent-amber)"></i> Real-time Stream Status</div>
+                </div>
+                <div id="slRealtimeContainer" style="padding: 20px;">
+                    <div class="empty-state"><i class="fas fa-satellite-dish"></i><p>Stream not started. Click "Start Stream" to begin.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ STORAGE TAB ═══ -->
+        <div class="tab-content" id="tab-storage">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="stat-label">Salesforce Bucket</div>
+                    <div class="stat-value" id="stoSfObjects">0</div>
+                    <div class="stat-meta" id="stoSfSize">0 MB</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">HubSpot Bucket</div>
+                    <div class="stat-value" id="stoHsObjects">0</div>
+                    <div class="stat-meta" id="stoHsSize">0 MB</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Slack Bucket</div>
+                    <div class="stat-value" id="stoSlObjects">0</div>
+                    <div class="stat-meta" id="stoSlSize">0 MB</div>
+                </div>
+                <div class="stat-card amber">
+                    <div class="stat-label">MinIO Console</div>
+                    <div class="stat-value" style="font-size: 16px;"><a href="http://localhost:9001" target="_blank" style="color: var(--accent-amber); text-decoration: none;">Open Console →</a></div>
+                    <div class="stat-meta">localhost:9001</div>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-folder-open" style="color: var(--accent-amber)"></i> MinIO File Browser</div>
+                    <button class="btn btn-outline" onclick="refreshStorage()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+                <div id="storageFilesContainer">
+                    <table class="data-table">
+                        <thead><tr><th>Bucket</th><th>File Path</th><th>Size</th><th>Last Modified</th></tr></thead>
+                        <tbody id="storageFilesBody"><tr><td colspan="4"><div class="empty-state">No files yet.</div></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const API = '';  // Relative to current host
+
+        // ─── Tab Navigation ───
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+
+            // Refresh data for the active tab
+            if (tabId === 'overview') refreshOverview();
+            else if (tabId === 'salesforce') refreshSalesforce();
+            else if (tabId === 'hubspot') refreshHubSpot();
+            else if (tabId === 'slack') refreshSlack();
+            else if (tabId === 'storage') refreshStorage();
+        }
+
+        // ─── API Helpers ───
+        async function apiGet(path) {
+            try {
+                const res = await fetch(`${API}${path}`);
+                return await res.json();
+            } catch (e) {
+                addLog(`[Error] ${path}: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function apiPost(path, body = {}) {
+            try {
+                const res = await fetch(`${API}${path}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                return await res.json();
+            } catch (e) {
+                addLog(`[Error] ${path}: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        function addLog(message, level = '') {
+            const log = document.getElementById('activityLog');
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = `log-line ${level}`;
+            line.textContent = `[${time}] ${message}`;
+            log.appendChild(line);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function statusBadge(status) {
+            const map = {
+                'completed': 'success', 'running': 'info', 'failed': 'danger',
+                'paused': 'warning', 'pending': 'neutral', 'stopped': 'neutral',
+            };
+            const cls = map[status] || 'neutral';
+            return `<span class="badge badge-${cls}"><span class="badge-dot"></span>${status || 'unknown'}</span>`;
+        }
+
+        // ─── Overview ───
+        async function refreshOverview() {
+            document.getElementById('lastRefresh').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+
+            const tables = await apiGet('/api/clickhouse/all-tables');
+            if (tables) {
+                document.getElementById('totalTables').textContent = tables.tables || 0;
+                document.getElementById('totalViews').textContent = `${tables.views || 0} views`;
+
+                let totalRows = 0;
+                if (tables.items && tables.items.length > 0) {
+                    let html = '<table class="data-table"><thead><tr><th>Name</th><th>Type</th><th>Rows</th></tr></thead><tbody>';
+                    tables.items.forEach(t => {
+                        if (t.rows) totalRows += t.rows;
+                        html += `<tr><td>${t.name}</td><td><span class="badge badge-${t.type === 'view' ? 'info' : 'success'}">${t.type}</span></td><td>${t.rows !== null ? t.rows.toLocaleString() : '—'}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('overviewTablesContainer').innerHTML = html;
+                }
+                document.getElementById('totalRecords').textContent = totalRows.toLocaleString();
+            }
+
+            const storage = await apiGet('/api/minio/all-stats');
+            if (storage && !storage.error) {
+                let totalObj = 0, totalMB = 0;
+                Object.values(storage).forEach(s => {
+                    totalObj += s.total_objects || 0;
+                    totalMB += s.total_size_mb || 0;
+                });
+                document.getElementById('totalObjects').textContent = totalObj;
+                document.getElementById('totalStorage').textContent = `${totalMB.toFixed(1)} MB`;
+            }
+        }
+
+        // ─── Salesforce ───
+        async function triggerSalesforceSync() {
+            addLog('[Salesforce] Triggering bulk sync for 12 objects...', 'info');
+            const res = await apiPost('/api/salesforce/sync', { max_workers: 4 });
+            if (res) addLog(`[Salesforce] ${res.message || res.status}`, 'success');
+            setTimeout(refreshSalesforce, 2000);
+            // Auto-refresh every 3 seconds
+            const interval = setInterval(async () => {
+                await refreshSalesforce();
+                const status = await apiGet('/api/salesforce/status');
+                if (status && status.pipeline_state === 'completed') {
+                    clearInterval(interval);
+                    addLog('[Salesforce] ✅ All jobs complete', 'success');
+                }
+            }, 3000);
+        }
+
+        async function salesforceAction(action) {
+            const res = await apiPost(`/api/salesforce/${action}`);
+            if (res) addLog(`[Salesforce] ${res.message || res.status}`, 'info');
+            refreshSalesforce();
+        }
+
+        async function refreshSalesforce() {
+            const status = await apiGet('/api/salesforce/status');
+            if (status) {
+                document.getElementById('sfState').textContent = status.pipeline_state || 'idle';
+                const summary = status.summary || {};
+                document.getElementById('sfCompleted').textContent = `${summary.completed || 0} / ${summary.total || 12}`;
+                document.getElementById('sfRecords').textContent = (summary.total_records || 0).toLocaleString();
+                document.getElementById('sfFailed').textContent = summary.failed || 0;
+
+                const jobs = status.jobs || {};
+                if (Object.keys(jobs).length > 0) {
+                    let html = '';
+                    for (const [name, job] of Object.entries(jobs)) {
+                        html += `<tr>
+                            <td><strong>${name}</strong></td>
+                            <td>${statusBadge(job.status)}</td>
+                            <td>${(job.records_extracted || 0).toLocaleString()}</td>
+                            <td>${job.duration_seconds ? job.duration_seconds + 's' : '—'}</td>
+                            <td style="font-size: 11px; color: var(--text-muted);">${job.parquet_path || '—'}</td>
+                            <td style="color: var(--accent-red);">${job.error || ''}</td>
+                        </tr>`;
+                    }
+                    document.getElementById('sfJobsBody').innerHTML = html;
+                }
+            }
+
+            const tables = await apiGet('/api/salesforce/clickhouse/tables');
+            if (tables && tables.tables && tables.tables.length > 0) {
+                let html = '';
+                tables.tables.forEach(t => {
+                    html += `<tr><td>${t.table}</td><td>${(t.rows || 0).toLocaleString()}</td><td>${t.columns || 0}</td></tr>`;
+                });
+                document.getElementById('sfTablesBody').innerHTML = html;
+            }
+        }
+
+        // ─── HubSpot ───
+        async function triggerHubSpotRun() {
+            addLog('[HubSpot] Starting dlt pipeline for 8 resources...', 'info');
+            const res = await apiPost('/api/hubspot/run', { max_workers: 4 });
+            if (res) addLog(`[HubSpot] ${res.status}`, 'success');
+            const interval = setInterval(async () => {
+                await refreshHubSpot();
+                const status = await apiGet('/api/hubspot/status');
+                if (status && status.pipeline_state === 'completed') {
+                    clearInterval(interval);
+                    addLog('[HubSpot] ✅ Pipeline complete', 'success');
+                }
+            }, 3000);
+        }
+
+        async function hubspotAction(action) {
+            const res = await apiPost(`/api/hubspot/${action}`);
+            if (res) addLog(`[HubSpot] ${res.status}`, 'info');
+            refreshHubSpot();
+        }
+
+        async function refreshHubSpot() {
+            const status = await apiGet('/api/hubspot/status');
+            if (status) {
+                document.getElementById('hsState').textContent = status.pipeline_state || 'idle';
+                const summary = status.summary || {};
+                document.getElementById('hsCompleted').textContent = `${summary.completed || 0} / ${summary.total || 8}`;
+                document.getElementById('hsRecords').textContent = (summary.total_records || 0).toLocaleString();
+
+                const jobs = status.jobs || {};
+                let parquetCount = 0;
+                if (Object.keys(jobs).length > 0) {
+                    let html = '';
+                    for (const [name, job] of Object.entries(jobs)) {
+                        const pFiles = job.parquet_files || [];
+                        parquetCount += pFiles.length;
+                        html += `<tr>
+                            <td><strong>${name}</strong></td>
+                            <td>${statusBadge(job.status)}</td>
+                            <td>${(job.records_extracted || 0).toLocaleString()}</td>
+                            <td>${pFiles.length}</td>
+                            <td style="color: var(--accent-red);">${job.error || ''}</td>
+                        </tr>`;
+                    }
+                    document.getElementById('hsJobsBody').innerHTML = html;
+                }
+                document.getElementById('hsParquet').textContent = parquetCount;
+            }
+
+            const views = await apiGet('/api/hubspot/clickhouse/views');
+            if (views && views.views && views.views.length > 0) {
+                let html = '<table class="data-table"><thead><tr><th>View Name</th><th>Type</th></tr></thead><tbody>';
+                views.views.forEach(v => {
+                    html += `<tr><td>${v}</td><td><span class="badge badge-info">VIEW</span></td></tr>`;
+                });
+                html += '</tbody></table>';
+                document.getElementById('hsViewsContainer').innerHTML = html;
+            }
+        }
+
+        // ─── Slack ───
+        async function startSlackBackfill() {
+            addLog('[Slack] Starting historical backfill...', 'info');
+            const res = await apiPost('/api/slack/backfill/start', { max_workers: 4 });
+            if (res) addLog(`[Slack] ${res.status} — ${res.mode}`, 'success');
+            const interval = setInterval(async () => {
+                await refreshSlack();
+                const status = await apiGet('/api/slack/backfill/status');
+                if (status && status.pipeline_state === 'completed') {
+                    clearInterval(interval);
+                    addLog('[Slack] ✅ Backfill complete', 'success');
+                }
+            }, 3000);
+        }
+
+        async function slackAction(action) {
+            const res = await apiPost(`/api/slack/${action}`);
+            if (res) addLog(`[Slack] ${res.status} — ${res.mode || action}`, 'info');
+            refreshSlack();
+        }
+
+        async function refreshSlack() {
+            const backfill = await apiGet('/api/slack/backfill/status');
+            if (backfill) {
+                document.getElementById('slBackfillState').textContent = backfill.pipeline_state || 'idle';
+                const summary = backfill.summary || {};
+                document.getElementById('slChannels').textContent = `${summary.completed || 0} / ${summary.total_channels || 0}`;
+                document.getElementById('slMessages').textContent = (summary.total_messages || 0).toLocaleString();
+
+                const jobs = backfill.jobs || {};
+                if (Object.keys(jobs).length > 0) {
+                    let html = '';
+                    for (const [id, job] of Object.entries(jobs)) {
+                        html += `<tr>
+                            <td><strong>#${job.channel_name || id}</strong></td>
+                            <td>${statusBadge(job.status)}</td>
+                            <td>${(job.messages_fetched || 0).toLocaleString()}</td>
+                            <td>${job.threads_fetched || 0}</td>
+                            <td style="color: var(--accent-red);">${job.error || ''}</td>
+                        </tr>`;
+                    }
+                    document.getElementById('slJobsBody').innerHTML = html;
+                }
+            }
+
+            const realtime = await apiGet('/api/slack/realtime/status');
+            if (realtime) {
+                document.getElementById('slRealtimeEvents').textContent = (realtime.total_events || 0).toLocaleString();
+                if (realtime.running) {
+                    document.getElementById('slRealtimeContainer').innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                            <div><span style="color: var(--text-muted); font-size: 12px;">Status</span><br>${statusBadge(realtime.pipeline_state)}</div>
+                            <div><span style="color: var(--text-muted); font-size: 12px;">Events</span><br><strong>${realtime.total_events}</strong></div>
+                            <div><span style="color: var(--text-muted); font-size: 12px;">Messages</span><br><strong>${realtime.total_messages}</strong></div>
+                            <div><span style="color: var(--text-muted); font-size: 12px;">Uptime</span><br><strong>${Math.round(realtime.uptime_seconds)}s</strong></div>
+                            <div><span style="color: var(--text-muted); font-size: 12px;">Flushes</span><br><strong>${realtime.total_flushes}</strong></div>
+                            <div><span style="color: var(--text-muted); font-size: 12px;">Buffer</span><br><strong>${realtime.buffer_size}</strong></div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // ─── Storage ───
+        async function refreshStorage() {
+            const stats = await apiGet('/api/minio/all-stats');
+            if (stats && !stats.error) {
+                const sf = stats.salesforce || {};
+                const hs = stats.hubspot || {};
+                const sl = stats.slack || {};
+                document.getElementById('stoSfObjects').textContent = sf.total_objects || 0;
+                document.getElementById('stoSfSize').textContent = `${(sf.total_size_mb || 0).toFixed(2)} MB`;
+                document.getElementById('stoHsObjects').textContent = hs.total_objects || 0;
+                document.getElementById('stoHsSize').textContent = `${(hs.total_size_mb || 0).toFixed(2)} MB`;
+                document.getElementById('stoSlObjects').textContent = sl.total_objects || 0;
+                document.getElementById('stoSlSize').textContent = `${(sl.total_size_mb || 0).toFixed(2)} MB`;
+            }
+
+            // Fetch files from each bucket
+            let allFiles = [];
+            for (const bucket of ['salesforce', 'hubspot', 'slack']) {
+                const data = await apiGet(`/api/${bucket}/minio/files`);
+                if (data && data.files) {
+                    data.files.forEach(f => allFiles.push({ bucket, ...f }));
+                }
+            }
+
+            if (allFiles.length > 0) {
+                let html = '';
+                allFiles.forEach(f => {
+                    const size = f.size ? (f.size / 1024).toFixed(1) + ' KB' : '—';
+                    html += `<tr>
+                        <td><span class="badge badge-info">${f.bucket}</span></td>
+                        <td style="font-size: 12px;">${f.name}</td>
+                        <td>${size}</td>
+                        <td style="font-size: 11px; color: var(--text-muted);">${f.last_modified || '—'}</td>
+                    </tr>`;
+                });
+                document.getElementById('storageFilesBody').innerHTML = html;
+            }
+        }
+
+        // ─── Auto-refresh ───
+        refreshOverview();
+        setInterval(() => {
+            const activeTab = document.querySelector('.nav-tab.active').dataset.tab;
+            if (activeTab === 'overview') refreshOverview();
+        }, 15000);
+    </script>
+</body>
+</html>
