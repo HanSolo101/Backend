@@ -79,12 +79,6 @@ class ClickHouseClient:
         Returns:
             The CREATE TABLE DDL that was executed.
         """
-        col_defs = ", ".join(
-            f"`{col}` Nullable({dtype})" if col != order_by[0] if order_by else col != list(columns.keys())[0]
-            else f"`{col}` {dtype}"
-            for col, dtype in columns.items()
-        )
-
         # Build safe column definitions
         col_lines = []
         primary_col = (order_by[0] if order_by else list(columns.keys())[0])

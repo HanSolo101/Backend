@@ -759,7 +759,10 @@
     </main>
 
     <script>
-        const API = '';  // Relative to current host
+        // Auto-detect backend API host (defaults to http://localhost:8000 if opened via file:// or Live Server)
+        const API = (window.location.protocol === 'file:' || (window.location.port && window.location.port !== '8000'))
+            ? 'http://localhost:8000'
+            : '';
 
         // ─── Tab Navigation ───
         function switchTab(tabId) {
@@ -780,6 +783,13 @@
         async function apiGet(path) {
             try {
                 const res = await fetch(`${API}${path}`);
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    console.warn(`[API] Non-JSON response for ${path}:`, text.substring(0, 100));
+                    addLog(`[Error] ${path}: Expected JSON but received ${res.status} (${contentType || 'HTML'}). Ensure server is running on http://localhost:8000`, 'error');
+                    return null;
+                }
                 return await res.json();
             } catch (e) {
                 addLog(`[Error] ${path}: ${e.message}`, 'error');
@@ -794,6 +804,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                 });
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    console.warn(`[API] Non-JSON response for ${path}:`, text.substring(0, 100));
+                    addLog(`[Error] ${path}: Expected JSON but received ${res.status} (${contentType || 'HTML'})`, 'error');
+                    return null;
+                }
                 return await res.json();
             } catch (e) {
                 addLog(`[Error] ${path}: ${e.message}`, 'error');
